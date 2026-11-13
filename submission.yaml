@@ -11,9 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified 2026-11-13 for PLE Agent Harness: declare Gemini 4 Argon as the
+# planned sponsored evaluation model; this does not enable free local access.
 
 name: ple-agent-harness
-model_api: google-cloud/claude-opus-5-5
+model_api: google-cloud/gemini-4-argon
 install: >-
   npm ci --prefix {src} --no-fund --no-audit
   && uv venv --python 3.12 /opt/harness/venv

@@ -6,7 +6,7 @@ An early agent-harness workspace for [Google - Agent Harness on Physical-Enginee
 
 ## Status
 
-Source preparation and 16 synthetic/mock logging tests are complete. The harness has not been built, connected to a model, run on the development set, or submitted. There is no measured score for this repository. No competition input data, API credentials, task outputs, or upstream dev-set artifacts are included.
+Source preparation and 23 synthetic/mock tests are complete (16 logging checks and 7 Argon configuration checks). The harness has not been built, connected to a model, run on the development set, or submitted. There is no measured score for this repository. No competition input data, API credentials, task outputs, or upstream dev-set artifacts are included.
 
 The starting implementation is the official Pi / Claude Opus 5.5 template, pinned to [commit 22c26a93a9e4974b16e4351faab0e860ff9fb24f](https://github.com/physical-engineerings-last-exam/submission-template/tree/22c26a93a9e4974b16e4351faab0e860ff9fb24f). The entry name, ignore rules and project documentation are new. The inherited logging has been hardened; dependency locks remain unchanged. Because the entry differs from the template, its existing dev-set artifacts are not claimed as our results and must not be reused as this entry's evaluation.
 
@@ -19,6 +19,14 @@ The starting implementation is the official Pi / Claude Opus 5.5 template, pinne
 - [Model configuration and local costs](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/models.md)
 
 The old template AGENTS.md and secret-committing advice were not copied. Current entries use an eligible Google-sponsored model with evaluator-injected credentials. Never commit a key, even to a private repository. Local model and judge calls can be billed to the configured account. This project will not use user-billed GCP or paid local API calls. Verify a genuinely no-charge sponsored route before any live call; sponsorship of final evaluation does not establish free local access.
+
+## Planned model: Gemini 4 Argon
+
+`submission.yaml` declares `google-cloud/gemini-4-argon`, an [eligible sponsored model](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/models.md). This is a candidate configuration, not confirmation of API access or a measured model result.
+
+The Pi 1.1.0 fallback uses a 1,048,576-token context, 65,536-token maximum output, text-only input and `--thinking high`. The `reasoning` field is deliberately unset, following the [official Pi guidance](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/sample_submissions/pi-opus/README.md#L41-L52), because enabling it makes Pi emit a token budget Argon rejects. Native Gemini `MAX` is documented as weaker than `high`. Generated-config tests do not establish the actual request shape; Pi integration and image support remain unverified.
+
+No free participant development allocation or numerical API quota has been verified. The official local Vertex proxy bills the user's GCP project; the default development judge is a separate Claude Opus 5.5 call. Do not invoke either paid route. Evaluation-injected credentials do not establish free local access. See the [Argon configuration note](docs/experiments/2026-11-13-argon-config.md).
 
 ## Before running
 
