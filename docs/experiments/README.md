@@ -6,6 +6,10 @@ English is primary. Each note includes a Japanese summary. This index covers pre
 
 | Date (UTC) | Note | Evidence class | Outcome |
 | --- | --- | --- | --- |
+| 2026-11-13 | [Argon image/routing guard](2026-11-13-argon-image-routing.md) | Synthetic configuration/process-boundary tests | Final 27/27 passed after one corrected integration-test error; no live calls |
+| 2026-11-13 | [Pinned Pi request-path trace](2026-11-13-pi-static-request-trace.md) | Exact-version static source review | Conditional thinking-field omission confirmed; no actual serialization |
+| 2026-11-13 | [Official source validation](2026-11-13-official-source-validation.md) | Official schema function, local-only | Passed; no model, process or Docker call |
+| 2026-11-13 | [Offline wire prerequisites](2026-11-13-argon-offline-wire-prerequisites.md) | Static review and failed package setup | npm registry DNS failure; actual wire test not run |
 | 2026-11-13 | [Argon configuration](2026-11-13-argon-config.md) | Synthetic generated-config/CLI tests | 7 new checks passed; combined suite 23/23; no live request or score |
 | 2026-11-13 | [Logging sentinel checks](2026-11-13-logging-sentinels.md) | Synthetic/mock tests | 16 passed; pinned runtime and real integration unverified |
 | 2026-11-13 | [Source preparation](2026-11-13-source-preparation.md) | Static source/provenance review | 7 focused checks passed; no runtime or score |

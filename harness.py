@@ -16,6 +16,8 @@
 # instead of logging task-bearing tool arguments, model events, or stderr.
 # Modified 2026-11-13 for Gemini 4 Argon: use model-specific fallback limits
 # and high thinking without enabling Pi's reasoning/token-budget flag.
+# Modified 2026-11-13: declare Argon image input and reject inherited Google
+# cloud-backend flags on the native Gemini route before starting Pi.
 
 """Pi coding agent harness (`@earendil-works/pi-coding-agent`).
 
@@ -31,9 +33,10 @@ The model is configured from the environment variables set by the evaluator in
 `models.json` for each task. Claude and Gemini models use their native APIs
 under Pi's built-in provider names (`anthropic` and `google`) so Pi's catalog
 supplies their limits, thinking support, and image input capabilities. Models
-missing from that catalog use text-only fallback limits, with a specific
-override for Gemini 4 Argon. Other providers use the OpenAI-compatible
-`MODEL_BASE_URL` and `MODEL_API_KEY` under a custom `model` provider.
+missing from that catalog use text-only fallback limits, with text/image
+input and specific limits for Gemini 4 Argon. Other providers use the
+OpenAI-compatible `MODEL_BASE_URL` and `MODEL_API_KEY` under a custom `model`
+provider.
 """
 
 from __future__ import annotations
@@ -60,6 +63,11 @@ MODEL_THINKING = {"gemini-4-argon": "high"}
 # arrives
 STOP_BEFORE_SEC = 90
 CATALOG_TIMEOUT_SEC = 30
+# The pinned Google SDK can select a cloud backend from these variables.
+GOOGLE_CLOUD_BACKEND_FLAGS = (
+    "GOOGLE_GENAI_USE_ENTERPRISE",
+    "GOOGLE_GENAI_USE_VERTEXAI",
+)
 # Request features the Google Cloud route for Claude refuses. pi leaves them
 # out, and the Anthropic API works without them too.
 COMPAT = {
@@ -75,7 +83,7 @@ UNKNOWN_MODEL = {"input": ["text"], "contextWindow": 128000, "maxTokens": 16384}
 # of the request's wire format; live compatibility remains unverified.
 MODEL_LIMITS = {
     "gemini-4-argon": {
-        "input": ["text"],
+        "input": ["text", "image"],
         "contextWindow": 1048576,
         "maxTokens": 65536,
     },
@@ -114,6 +122,30 @@ def provider() -> tuple[str, dict[str, Any]]:
       "api": "openai-completions",
       "apiKey": "$MODEL_API_KEY",
   }
+
+
+def subprocess_env(name: str, env: dict[str, str]) -> dict[str, str]:
+  """Copies the child environment and fails closed for native Gemini routing.
+
+  For Google's native route, each cloud-backend flag must be absent or exactly
+  the lowercase string ``false`` in both the inherited and supplied environment.
+  All other values, including empty strings, case/whitespace variants and ``0``,
+  are rejected without echoing their contents. Both child flags are explicitly
+  ``false`` after validation. Neither input environment is modified.
+
+  This only blocks these SDK backend selectors; it does not validate endpoints,
+  credentials, sponsored access or costs. Non-Google routes are copied unchanged.
+  """
+  child_env = dict(env)
+  if name == "google":
+    for flag in GOOGLE_CLOUD_BACKEND_FLAGS:
+      if any(
+          flag in source and source[flag] != "false"
+          for source in (os.environ, child_env)
+      ):
+        raise RuntimeError("pi: native_google_cloud_backend_flag_rejected")
+    child_env.update({flag: "false" for flag in GOOGLE_CLOUD_BACKEND_FLAGS})
+  return child_env
 
 
 def in_catalog(name: str, model: str, env: dict[str, str]) -> bool:
@@ -164,6 +196,7 @@ def configure(
   """
   model = os.environ["MODEL_NAME"]
   name, config = provider()
+  env = subprocess_env(name, env)
   models = agent_dir / "models.json"
   # `pi --list-models` reads the provider here
   models.write_text(json.dumps({"providers": {name: config}}))
@@ -257,7 +290,8 @@ async def solve(session: taskbridge.Session) -> str:
     The final message produced by Pi.
 
   Raises:
-    RuntimeError: If Pi exits before the model produces any assistant reply.
+    RuntimeError: If a native Google cloud-backend flag is unsafe, or Pi exits
+      before the model produces any assistant reply.
   """
   with tempfile.TemporaryDirectory(
       prefix="pi-",
@@ -271,7 +305,7 @@ async def solve(session: taskbridge.Session) -> str:
     agent_dir.mkdir()
     work.mkdir()
     async with taskbridge.Relay(session) as relay:
-      env = relay.env()
+      env = dict(relay.env())
       env.update(
           PI_CODING_AGENT_DIR=str(agent_dir),
           PI_OFFLINE="1",
@@ -283,6 +317,7 @@ async def solve(session: taskbridge.Session) -> str:
       name, model = await asyncio.to_thread(
           configure, agent_dir, relay, session, env
       )
+      env = subprocess_env(name, env)
       argv = [
           PI,
           "--print",

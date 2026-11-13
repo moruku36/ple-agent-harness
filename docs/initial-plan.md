@@ -10,7 +10,7 @@ Logging hardening is implemented and covered by [16 synthetic/mock checks](exper
 
 ## Model candidate
 
-The candidate now declares Gemini 4 Argon, with model-specific limits and high CLI thinking; reasoning remains unset as the official Pi guide requires. [Seven new mock configuration checks](experiments/2026-11-13-argon-config.md) and the combined 23-test suite pass. This is not a live API or score result. The fallback remains text-only; request serialization, image support and a no-charge route need verification.
+The candidate now declares Gemini 4 Argon, with model-specific limits and high CLI thinking; reasoning remains unset as the official Pi guide requires. After the initial configuration, [image metadata and native-backend protection](experiments/2026-11-13-argon-image-routing.md) were added. The final combined 27-test suite passes. This is not a live API or score result. The fallback now declares text/image, and unsafe Vertex/Enterprise environment flags fail closed on the native route. Actual request serialization, image handling and a no-charge route still need verification. See the [no-charge review](no-charge-paths.md).
 
 ## First real pilot, currently blocked
 
