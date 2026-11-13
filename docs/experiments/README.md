@@ -6,6 +6,8 @@ English is primary. Each note includes a Japanese summary. This index covers pre
 
 | Date (UTC) | Note | Evidence class | Outcome |
 | --- | --- | --- | --- |
+| 2026-11-13 | [Argon configuration](2026-11-13-argon-config.md) | Synthetic generated-config/CLI tests | 7 new checks passed; combined suite 23/23; no live request or score |
+| 2026-11-13 | [Logging sentinel checks](2026-11-13-logging-sentinels.md) | Synthetic/mock tests | 16 passed; pinned runtime and real integration unverified |
 | 2026-11-13 | [Source preparation](2026-11-13-source-preparation.md) | Static source/provenance review | 7 focused checks passed; no runtime or score |
 
 ## Recording rules

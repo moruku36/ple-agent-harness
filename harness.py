@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified 2026-11-13 for PLE Agent Harness: use content-free runtime diagnostics
+# instead of logging task-bearing tool arguments, model events, or stderr.
+# Modified 2026-11-13 for Gemini 4 Argon: use model-specific fallback limits
+# and high thinking without enabling Pi's reasoning/token-budget flag.
 
 """Pi coding agent harness (`@earendil-works/pi-coding-agent`).
 
@@ -25,9 +30,10 @@ message.
 The model is configured from the environment variables set by the evaluator in
 `models.json` for each task. Claude and Gemini models use their native APIs
 under Pi's built-in provider names (`anthropic` and `google`) so Pi's catalog
-supplies their limits, thinking support, and image input capabilities. Any other
-model uses the OpenAI-compatible `MODEL_BASE_URL` and `MODEL_API_KEY` under a
-custom `model` provider with `UNKNOWN_MODEL` limits.
+supplies their limits, thinking support, and image input capabilities. Models
+missing from that catalog use text-only fallback limits, with a specific
+override for Gemini 4 Argon. Other providers use the OpenAI-compatible
+`MODEL_BASE_URL` and `MODEL_API_KEY` under a custom `model` provider.
 """
 
 from __future__ import annotations
@@ -46,8 +52,10 @@ import taskbridge
 HERE = pathlib.Path(__file__).resolve().parent
 # npm ci, from package-lock.json
 PI = shutil.which("pi") or str(HERE / "node_modules" / ".bin" / "pi")
+# Default for other models; Argon's native MAX is weaker than high.
 # pi's --thinking level: off, minimal, low, medium, high, xhigh or max
 THINKING = "max"
+MODEL_THINKING = {"gemini-4-argon": "high"}
 # stop pi this long before the deadline (less on short tasks) so its answer
 # arrives
 STOP_BEFORE_SEC = 90
@@ -62,6 +70,16 @@ COMPAT = {
 }
 # A model pi's catalog does not know gets these limits; tune them for yours.
 UNKNOWN_MODEL = {"input": ["text"], "contextWindow": 128000, "maxTokens": 16384}
+# Pi 1.1.0 does not catalog Argon. Keep reasoning unset: enabling it makes Pi
+# emit a token thinkingBudget, which Argon rejects. CLI high is not evidence
+# of the request's wire format; live compatibility remains unverified.
+MODEL_LIMITS = {
+    "gemini-4-argon": {
+        "input": ["text"],
+        "contextWindow": 1048576,
+        "maxTokens": 65536,
+    },
+}
 NOTE = (
     "You are working on an engineering task. Your tools act on the task's Linux"
     " container, whose working directory is {workdir}; it has no internet"
@@ -102,7 +120,8 @@ def in_catalog(name: str, model: str, env: dict[str, str]) -> bool:
   """Checks whether Pi's built-in model catalog recognizes `model`.
 
   If the probe hangs beyond `CATALOG_TIMEOUT_SEC` or fails, returns `False` so
-  the model is configured explicitly with `UNKNOWN_MODEL` limits.
+  the model is configured explicitly with model-specific or `UNKNOWN_MODEL`
+  fallback limits.
 
   Args:
     name: Provider name (`anthropic`, `google`, or `model`).
@@ -149,7 +168,8 @@ def configure(
   # `pi --list-models` reads the provider here
   models.write_text(json.dumps({"providers": {name: config}}))
   if not in_catalog(name, model, env):
-    config["models"] = [{"id": model, "name": model, **UNKNOWN_MODEL}]
+    limits = MODEL_LIMITS.get(model, UNKNOWN_MODEL)
+    config["models"] = [{"id": model, "name": model, **limits}]
     models.write_text(json.dumps({"providers": {name: config}}))
   settings = {
       "defaultProjectTrust": "never",
@@ -189,9 +209,9 @@ class Run:
       if text.strip():
         self.session.final_message = text.strip()
       if message.get("stopReason") == "error":
-        await self.session.log(
-            f"pi: model error: {message.get('errorMessage')}"
-        )
+        # Model errors can echo task prompts and tool output. Keep diagnostics
+        # separate from the intended final-response and usage payloads.
+        await self.session.log("pi: model_error")
       # input_tokens counts cached prompt tokens too
       u = message.get("usage") or {}
       await self.session.usage(
@@ -203,11 +223,11 @@ class Run:
           cache_read_tokens=u.get("cacheRead", 0),
       )
     elif kind == "tool_execution_start":
-      await self.session.log(
-          f"pi: {event.get('toolName')} {json.dumps(event.get('args'))[:300]}"
-      )
-    elif kind in ("auto_retry_start", "compaction_start"):
-      await self.session.log(f"pi: {kind} {json.dumps(event)[:300]}")
+      await self.session.log("pi: tool_execution_start")
+    elif kind == "auto_retry_start":
+      await self.session.log("pi: auto_retry_start")
+    elif kind == "compaction_start":
+      await self.session.log("pi: compaction_start")
 
   async def on_line(self, line: bytes) -> None:
     """Parses a raw stdout line from Pi as JSON and forwards it to `on_event`.
@@ -280,7 +300,7 @@ async def solve(session: taskbridge.Session) -> str:
           "--model",
           model,
           "--thinking",
-          THINKING,
+          MODEL_THINKING.get(model, THINKING),
           "--append-system-prompt",
           NOTE.format(workdir=session.workdir),
       ]
@@ -293,11 +313,7 @@ async def solve(session: taskbridge.Session) -> str:
           on_line=run.on_line,
           stdin=session.instruction.encode(),
           stop_before_sec=STOP_BEFORE_SEC,
-          log_prefix="pi: ",
       )
   if not run.replies:
-    raise RuntimeError(
-        f"pi exited with {done.code} before the model answered:"
-        f" {done.stderr[-2000:]}"
-    )
+    raise RuntimeError(f"pi: no_assistant_reply exit_code={done.code}")
   return session.final_message or "(pi stopped without a final message)"
