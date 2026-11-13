@@ -6,9 +6,11 @@ An early agent-harness workspace for [Google - Agent Harness on Physical-Enginee
 
 ## Status
 
-Source preparation and 23 synthetic/mock tests are complete (16 logging checks and 7 Argon configuration checks). The harness has not been built, connected to a model, run on the development set, or submitted. There is no measured score for this repository. No competition input data, API credentials, task outputs, or upstream dev-set artifacts are included.
+Source preparation and 27 synthetic/mock tests are complete (16 logging checks and 11 Argon configuration/routing checks). The harness has not been built, connected to a model, run on the development set, or submitted. There is no measured score for this repository. No competition input data, API credentials, task outputs, or upstream dev-set artifacts are included.
 
 The starting implementation is the official Pi / Claude Opus 5.5 template, pinned to [commit 22c26a93a9e4974b16e4351faab0e860ff9fb24f](https://github.com/physical-engineerings-last-exam/submission-template/tree/22c26a93a9e4974b16e4351faab0e860ff9fb24f). The entry name, ignore rules and project documentation are new. The inherited logging has been hardened; dependency locks remain unchanged. Because the entry differs from the template, its existing dev-set artifacts are not claimed as our results and must not be reused as this entry's evaluation.
+
+The unmodified official `kit.spec.load(entry)` source validator also passes for this declaration; this is not the full CLI or `kit check`. See the [source-validation note](docs/experiments/2026-11-13-official-source-validation.md). Preparation for testing the actual pinned Pi serializer failed on npm registry DNS resolution, so wire thinking fields and image handling remain unverified; see the [attempt record](docs/experiments/2026-11-13-argon-offline-wire-prerequisites.md).
 
 ## Current sources
 
@@ -24,9 +26,15 @@ The old template AGENTS.md and secret-committing advice were not copied. Current
 
 `submission.yaml` declares `google-cloud/gemini-4-argon`, an [eligible sponsored model](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/models.md). This is a candidate configuration, not confirmation of API access or a measured model result.
 
-The Pi 1.1.0 fallback uses a 1,048,576-token context, 65,536-token maximum output, text-only input and `--thinking high`. The `reasoning` field is deliberately unset, following the [official Pi guidance](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/sample_submissions/pi-opus/README.md#L41-L52), because enabling it makes Pi emit a token budget Argon rejects. Native Gemini `MAX` is documented as weaker than `high`. Generated-config tests do not establish the actual request shape; Pi integration and image support remain unverified.
+The Pi 1.1.0 fallback uses a 1,048,576-token context, 65,536-token maximum output, text/image input and `--thinking high`. The `reasoning` field is deliberately unset, following the [official Pi guidance](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/sample_submissions/pi-opus/README.md#L41-L52), because enabling it makes Pi emit a token budget Argon rejects. Native Gemini `MAX` is documented as weaker than `high`. Generated-config tests do not establish the actual request shape; Pi integration and end-to-end image handling remain unverified. Exact-version [static source tracing](docs/experiments/2026-11-13-pi-static-request-trace.md) supports omission of both thinking fields on the registered-model path, which relies on the official gateway default HIGH rather than sending CLI high directly.
 
-No free participant development allocation or numerical API quota has been verified. The official local Vertex proxy bills the user's GCP project; the default development judge is a separate Claude Opus 5.5 call. Do not invoke either paid route. Evaluation-injected credentials do not establish free local access. See the [Argon configuration note](docs/experiments/2026-11-13-argon-config.md).
+The [official general API pricing page](https://aistudio.google.com/docs/pricing#gemini-4-argon) excludes Argon from its Free tier. No free participant development allocation or numerical API quota has been verified. The official local Vertex proxy bills the user's GCP project; the default development judge is a separate Claude Opus 5.5 call. Do not invoke either paid route. Evaluation-injected credentials do not establish free local access. See the [Argon configuration note](docs/experiments/2026-11-13-argon-config.md) and [no-charge route review](docs/no-charge-paths.md).
+
+## Native Gemini backend guard
+
+The native Google route accepts each of `GOOGLE_GENAI_USE_ENTERPRISE` and `GOOGLE_GENAI_USE_VERTEXAI` only when missing or exactly lowercase `false`. Enabled or ambiguous values stop the run before catalog/Pi execution. Valid flags become explicit `false` values only in private subprocess-environment copies; the original environment and machine settings are not changed. Non-Google routing is unchanged.
+
+This prevents these inherited SDK flags from selecting Vertex/Enterprise. It does not validate endpoint billing or guarantee a free call. Live calls remain blocked. The [image/routing experiment](docs/experiments/2026-11-13-argon-image-routing.md) records the fix, one corrected integration-test failure and the final 27/27 result.
 
 ## Before running
 
