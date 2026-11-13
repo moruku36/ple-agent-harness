@@ -10,4 +10,6 @@ Read the current Kaggle rules and organizer instructions linked in README.md bef
 - Use the official kit and a local Docker daemon; keep the kit and entry in separate repositories. Follow Windows WSL and Linux-filesystem guidance when applicable.
 - Dev artifacts must be untouched exports from eval/run.py for the exact evaluated harness. Do not hand-create or edit artifacts. A harness change requires the corresponding validation and dev-set rerun.
 - Keep tests focused. Clearly distinguish source checks, mock protocol tests, actual runtime checks, local dev scores and official competition results.
+- Use English as the main documentation language and maintain README.ja.md alongside README.md. Give experiment notes a Japanese summary.
+- Record every experiment, including failed or interrupted attempts, under docs/experiments/ with its conditions, exact source/configuration identifiers, results, failures, limitations and next step. Never report an unrun stage as completed. Keep raw task content and secrets out of public notes.
 - Before public commits, check the exact staged files and history for secrets, raw data, task trajectories and unintended generated outputs. Do not publish restricted competition data.

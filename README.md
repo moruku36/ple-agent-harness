@@ -1,5 +1,7 @@
 # PLE Agent Harness
 
+[English](README.md) | [日本語](README.ja.md)
+
 An early agent-harness workspace for [Google - Agent Harness on Physical-Engineering's Last Exam](https://www.kaggle.com/competitions/physical-engineerings-last-exam).
 
 ## Status
@@ -28,6 +30,14 @@ The old template AGENTS.md and secret-committing advice were not copied. Current
 6. Inspect generated artifacts for copied raw inputs and secrets before publication. Do not manually edit benchmark outputs to improve their score. Commit the verified code and artifacts together only after review.
 
 The initial source check is not an official kit check, a test of cancellation, or evidence of score, eligibility or submission success.
+
+## Experiment notes
+
+English is the primary documentation language, with a Japanese README and Japanese summaries in experiment notes. Keep both README versions synchronized when status or usage changes.
+
+Use the [experiment index](docs/experiments/README.md) and [note template](docs/experiments/TEMPLATE.md). Each actual experiment records its objective, exact code/configuration, environment and resource limits, procedure, measured results, failures, limitations and next decision. Record unsuccessful runs too. Source reviews and synthetic tests are labeled separately from live model runs, local dev-set scores and official results. Never fill an unrun stage with an assumed result.
+
+Public notes contain code/configuration identifiers and reviewed aggregate results, not credentials, task prompts, input files, raw trajectories or copied task outputs. Benchmark artifacts have a separate review and publication requirement; notes do not replace them.
 
 ## License
 
