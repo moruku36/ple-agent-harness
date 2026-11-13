@@ -1,0 +1,20 @@
+# Credentials must stay outside this repository, including local evaluation keys.
+.env
+.env.*
+*.env
+credentials*.json
+*service-account*.json
+*.pem
+*.key
+# Local inputs, caches, logs and task trajectories are not public source.
+data/
+datasets/
+tasks/
+runs/
+logs/
+.cache/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+# artifacts/ is intentionally not ignored: publish only reviewed eval/run.py exports.
