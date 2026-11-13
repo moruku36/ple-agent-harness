@@ -32,7 +32,7 @@ Argon does not match this Pi version's discrete-level model patterns. With reaso
 
 ## Images and backend selection
 
-- Pi's [Google tool-result conversion](https://github.com/earendil-works/pi/blob/abe508e1b89912adde45528136c3221eb69acdd7/packages/ai/src/api/google-shared.ts#L284-L337) discards image blocks when `model.input` excludes `image`. For the text-only entry at the reference commit, this is a source-level limitation. An image-only successful tool result can become an empty output string. This is not a measured task failure.
+- Pi's [Google tool-result conversion](https://github.com/earendil-works/pi/blob/abe508e1b89912adde45528136c3221eb69acdd7/packages/ai/src/api/google-shared.ts#L191-L200) first calls `transformMessages`. For a text-only model, that [preprocessing step](https://github.com/earendil-works/pi/blob/abe508e1b89912adde45528136c3221eb69acdd7/packages/ai/src/api/transform-messages.ts#L13-L77) replaces unsupported tool-image blocks with the text placeholder `(tool image omitted: model does not support images)`. Image bytes are omitted, but an image-only successful tool result becomes that placeholder rather than an empty output string. This is a source-level limitation, not a measured task failure.
 - Pi's [GoogleGenAI construction](https://github.com/earendil-works/pi/blob/abe508e1b89912adde45528136c3221eb69acdd7/packages/ai/src/api/google-generative-ai.ts#L348-L366) passes key/base URL/headers but does not explicitly choose `vertexai: false`.
 - SDK [backend resolution](https://github.com/googleapis/js-genai/blob/27af8977598edb68ffccadcd34fae967205a8740/src/node/node_client.ts#L48-L87) can read `GOOGLE_GENAI_USE_ENTERPRISE` and `GOOGLE_GENAI_USE_VERTEXAI` from the process environment. An inherited flag can alter backend selection. No such runtime switch or charge was observed here; it is a conditional routing risk that warrants a fail-closed native-Gemini guard.
 
@@ -47,5 +47,5 @@ Continue with a small image-metadata correction only after checking exact-model 
 - Pi 1.1.0 と Google SDK 2.21.0 の公式固定ソースを追跡した。パッケージの実行や実API呼び出しはしていない。
 - Argon が `models.json` で正しく登録される経路では、未指定の `reasoning` は false となり、CLI の high は内部で off に制限される。ただし予算0は送らず、thinkingBudget/Level の両方を構築しない。主催者側の既定HIGHに依存する形で、実通信は未確認。
 - 登録に失敗して CLI の未知モデル用経路へ入ると、拒否されるトークン予算を構築し得る。この経路を混同しない。
-- テキスト専用設定では画像ツール結果が除去される。SDKは環境フラグによりVertex/Enterprise側へ切り替わり得るため、対応する設定修正と誤ルーティング防止が必要。
+- テキスト専用設定では前処理が画像データを省略理由の説明文に置換する。画像だけのツール結果も空文字にはならないが、画像の内容は送られない。SDKは環境フラグによりVertex/Enterprise側へ切り替わり得るため、対応する設定修正と誤ルーティング防止が必要。
 - これはソース上の条件分岐の確認であり、画像処理の実績、課金の発生、無料枠、スコアを示さない。
