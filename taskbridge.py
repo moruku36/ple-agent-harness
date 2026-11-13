@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified 2026-11-13 for PLE Agent Harness: use content-free runtime diagnostics,
+# discard subprocess stderr, and retrieve late task exceptions without logging.
 
 """Serve-protocol plumbing for a PLEBench harness (`docs/protocol.md`).
 
@@ -70,6 +73,8 @@ MAX_LINE = 32 << 20  # run_process skips a longer line of subprocess output
 MAX_HEAD = 64 << 10  # the Relay's limit on a request line and headers
 # and on a body (a write_file body holds a whole file as base64 JSON)
 MAX_BODY = 64 << 20
+# Keep diagnostics bounded; never derive log labels from task or error text.
+MAX_DIAGNOSTIC_COUNT = (1 << 63) - 1
 
 
 class Cancelled(Exception):  # pylint: disable=g-bad-exception-name
@@ -143,8 +148,7 @@ class Session:
           msg = None
         if not isinstance(msg, dict):
           print(
-              "taskbridge: skipped a frame that is not a JSON object:"
-              f" {str(frame)[:200]!r}",
+              "taskbridge: invalid_evaluator_frame",
               file=sys.stderr,
               flush=True,
           )
@@ -163,10 +167,9 @@ class Session:
     except ConnectionClosed:
       pass
     # Logged here; waiting requests are released in the finally block below.
-    except Exception as exc:  # pylint: disable=broad-exception-caught
+    except Exception:  # pylint: disable=broad-exception-caught
       print(
-          "taskbridge: stopped reading the evaluator's messages:"
-          f" {type(exc).__name__}: {exc}",
+          "taskbridge: evaluator_read_error",
           file=sys.stderr,
           flush=True,
       )
@@ -384,6 +387,9 @@ class Session:
   async def log(self, text: str) -> None:
     """Sends a progress log message (up to 20,000 characters) to the evaluator.
 
+    Callers must supply content-free diagnostics, not task text, tool arguments,
+    model output, arbitrary exception text, or untrusted event metadata.
+
     Args:
       text: Log message string.
     """
@@ -599,24 +605,20 @@ async def _session(ws: Any, handler: Any) -> None:
       })
     elif not isinstance(exc, Cancelled):
       print(
-          f"harness error: {type(exc).__name__}: {exc}",
+          "taskbridge: harness_error",
           file=sys.stderr,
           flush=True,
       )
       if session.final_message:
         # a summary written before the failure still reaches the graders, who
         # read the final message
-        await session.log(
-            f"harness error after its summary: {type(exc).__name__}: {exc}"[
-                :2000
-            ]
-        )
+        await session.log("taskbridge: harness_error_after_summary")
         await session.send(
             {"type": "done", "final_message": _final(session.final_message)}
         )
       else:
         await session.send(
-            {"type": "error", "message": f"{type(exc).__name__}: {exc}"[:2000]}
+            {"type": "error", "message": "harness_error"}
         )
     else:
       # The evaluator closes the socket 10 s after cancel: give the handler 2 s
@@ -644,6 +646,15 @@ async def _session(ws: Any, handler: Any) -> None:
   finally:
     for t in (work, stop, reader):
       t.cancel()
+      # A handler may fail while unwinding cancellation after we stop waiting.
+      # Retrieve that failure so asyncio cannot dump task text in a traceback.
+      t.add_done_callback(_retrieve_task_exception)
+
+
+def _retrieve_task_exception(task: asyncio.Task) -> None:
+  """Retrieves a finished task's exception without printing arbitrary content."""
+  if not task.cancelled():
+    task.exception()
 
 
 async def serve_forever(handler: Any, port: int | None = None) -> None:
@@ -1339,11 +1350,12 @@ async def _chunked(reader: asyncio.StreamReader) -> bytes:
 
 @dataclasses.dataclass
 class Finished:
-  """Exit status and captured stderr tail of a finished agent subprocess."""
+  """Exit status and content-free diagnostics of a finished subprocess."""
 
   code: int  # the exit code; -1 when it was stopped before it exited
-  stderr: str  # the last lines of stderr, 2,000 characters of each at most
+  stderr: str  # compatibility field; run_process always returns an empty string
   stopped: bool = False  # stopped before the deadline (stop_before_sec)
+  stderr_bytes: int = 0  # bytes discarded, capped at MAX_DIAGNOSTIC_COUNT
 
 
 async def lines(stream: asyncio.StreamReader, max_line: int = MAX_LINE):
@@ -1437,8 +1449,9 @@ async def run_process(
   """Runs an agent subprocess until exit, cancellation, or `stop_before_sec`.
 
   Terminates the subprocess's entire process group via `_stop` when finished or
-  timed out. Streams stderr lines to the task log and passes stdout lines to
-  `on_line` if provided.
+  timed out. Discards stderr content, reports a capped byte count, and passes
+  stdout lines to `on_line` if provided. Raw stderr is never logged or retained
+  in the result, including on failure.
 
   Args:
     argv: Command and arguments list for `create_subprocess_exec`.
@@ -1448,11 +1461,12 @@ async def run_process(
     stdin: Optional bytes to write to the subprocess's standard input.
     on_line: Optional async callback `on_line(line_bytes)` for stdout lines.
     stop_before_sec: Seconds to reserve before the session deadline.
-    log_prefix: Prefix prepended to stderr lines sent to the task log.
+    log_prefix: Deprecated compatibility argument; ignored. Diagnostic labels
+      are fixed so a caller cannot accidentally insert task content in logs.
 
   Returns:
-    A `Finished` instance with the exit code, recent stderr lines, and whether
-    the process was stopped by the time budget.
+    A `Finished` instance with the exit code, an empty `stderr` field, whether
+    the process was stopped by the time budget, and the discarded byte count.
   """
   pipe, devnull = asyncio.subprocess.PIPE, asyncio.subprocess.DEVNULL
   proc = await asyncio.create_subprocess_exec(
@@ -1464,7 +1478,7 @@ async def run_process(
       stdout=devnull if on_line is None else pipe,
       stderr=pipe,
   )
-  err: list[str] = []
+  stderr_bytes = 0
 
   async def feed():
     with contextlib.suppress(ConnectionError):
@@ -1478,13 +1492,11 @@ async def run_process(
         await on_line(line)
 
   async def pump_err():
-    async for line in lines(proc.stderr):
-      text = line.decode("utf-8", "replace").rstrip()
-      err.append(text[:2000])  # a line can be MAX_LINE long
-      del err[:-50]
-      print(f"{log_prefix}{text}", file=sys.stderr, flush=True)
-      if text:
-        await session.log(f"{log_prefix}{text}"[:2000])
+    nonlocal stderr_bytes
+    # Drain bytes rather than collecting/decoding lines, including very long
+    # or invalid UTF-8 output. Retain only a bounded numeric diagnostic.
+    while chunk := await proc.stderr.read(1 << 20):
+      stderr_bytes = min(MAX_DIAGNOSTIC_COUNT, stderr_bytes + len(chunk))
 
   pumps = asyncio.gather(
       pump_err(),
@@ -1498,16 +1510,19 @@ async def run_process(
     await asyncio.wait_for(asyncio.shield(proc.wait()), run_for)
   except asyncio.TimeoutError:
     stopped = True
-    await session.log(
-        f"{log_prefix}stopped {max(left, 0) - run_for:.0f} s before the time"
-        " limit"
-    )
+    await session.log("taskbridge: subprocess_deadline_stop")
   finally:
     await asyncio.shield(_stop(proc))
     with contextlib.suppress(Exception):
       await asyncio.wait_for(pumps, 10)
+    if stderr_bytes:
+      diagnostic = (
+          f"taskbridge: subprocess_stderr_discarded bytes={stderr_bytes}"
+      )
+      print(diagnostic, file=sys.stderr, flush=True)
+      await session.log(diagnostic)
   code = proc.returncode if proc.returncode is not None and not stopped else -1
-  return Finished(code, "\n".join(err), stopped)
+  return Finished(code, "", stopped, stderr_bytes)
 
 
 async def _stop(proc: Any) -> None:

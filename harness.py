@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Modified 2026-11-13 for PLE Agent Harness: use content-free runtime diagnostics
+# instead of logging task-bearing tool arguments, model events, or stderr.
 
 """Pi coding agent harness (`@earendil-works/pi-coding-agent`).
 
@@ -189,9 +192,9 @@ class Run:
       if text.strip():
         self.session.final_message = text.strip()
       if message.get("stopReason") == "error":
-        await self.session.log(
-            f"pi: model error: {message.get('errorMessage')}"
-        )
+        # Model errors can echo task prompts and tool output. Keep diagnostics
+        # separate from the intended final-response and usage payloads.
+        await self.session.log("pi: model_error")
       # input_tokens counts cached prompt tokens too
       u = message.get("usage") or {}
       await self.session.usage(
@@ -203,11 +206,11 @@ class Run:
           cache_read_tokens=u.get("cacheRead", 0),
       )
     elif kind == "tool_execution_start":
-      await self.session.log(
-          f"pi: {event.get('toolName')} {json.dumps(event.get('args'))[:300]}"
-      )
-    elif kind in ("auto_retry_start", "compaction_start"):
-      await self.session.log(f"pi: {kind} {json.dumps(event)[:300]}")
+      await self.session.log("pi: tool_execution_start")
+    elif kind == "auto_retry_start":
+      await self.session.log("pi: auto_retry_start")
+    elif kind == "compaction_start":
+      await self.session.log("pi: compaction_start")
 
   async def on_line(self, line: bytes) -> None:
     """Parses a raw stdout line from Pi as JSON and forwards it to `on_event`.
@@ -293,11 +296,7 @@ async def solve(session: taskbridge.Session) -> str:
           on_line=run.on_line,
           stdin=session.instruction.encode(),
           stop_before_sec=STOP_BEFORE_SEC,
-          log_prefix="pi: ",
       )
   if not run.replies:
-    raise RuntimeError(
-        f"pi exited with {done.code} before the model answered:"
-        f" {done.stderr[-2000:]}"
-    )
+    raise RuntimeError(f"pi: no_assistant_reply exit_code={done.code}")
   return session.final_message or "(pi stopped without a final message)"
