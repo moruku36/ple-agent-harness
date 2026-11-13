@@ -12,6 +12,14 @@ The starting implementation is the official Pi / Claude Opus 5.5 template, pinne
 
 The unmodified official `kit.spec.load(entry)` source validator also passes for this declaration; this is not the full CLI or `kit check`. See the [source-validation note](docs/experiments/2026-11-13-official-source-validation.md). Preparation for testing the actual pinned Pi serializer failed on npm registry DNS resolution, so wire thinking fields and image handling remain unverified; see the [attempt record](docs/experiments/2026-11-13-argon-offline-wire-prerequisites.md).
 
+## Current development rules and preflight
+
+The [current Kaggle Overview](https://www.kaggle.com/competitions/physical-engineerings-last-exam/overview), Minimum Requirements 3–4, permits genuine development artifacts from a self-hosted open-weight model or personal API, then a switch of `model_api` to an eligible `google-cloud/<id>` model, including Argon, before commit. Disclose the actual development model and judge. Paid local judging is not mandatory; organizers rescore the artifacts. This does not turn local-model results into measured Argon results or permit arbitrary post-run harness changes.
+
+Rules B.2 allows one entry per team, not one per day. A Writeup of at most 2,000 words can be unsubmitted, edited and resubmitted before the deadline; the inspected rules provide no numerical daily retry allowance. Sponsored Stage 2 evaluation is for the top 100 Stage 1 entries, not an on-demand development API.
+
+A no-paid-API local inference preflight stopped before inference because resource-safety prerequisites could not be verified. Permission to develop locally does not establish runtime availability. No model calls, scores or artifacts resulted. See the [rules and preflight record](docs/experiments/2026-11-13-rules-and-local-preflight.md). The 27-test result above is historical and was not rerun for this documentation correction.
+
 ## Current sources
 
 - [Kaggle competition and timeline](https://www.kaggle.com/competitions/physical-engineerings-last-exam)
@@ -20,7 +28,7 @@ The unmodified official `kit.spec.load(entry)` source validator also passes for 
 - [Official kit](https://github.com/google-research/ple)
 - [Model configuration and local costs](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/models.md)
 
-The old template AGENTS.md and secret-committing advice were not copied. Current entries use an eligible Google-sponsored model with evaluator-injected credentials. Never commit a key, even to a private repository. Local model and judge calls can be billed to the configured account. This project will not use user-billed GCP or paid local API calls. Verify a genuinely no-charge sponsored route before any live call; sponsorship of final evaluation does not establish free local access.
+The old template AGENTS.md and secret-committing advice were not copied. Current entries use an eligible Google-sponsored model with evaluator-injected credentials. Never commit a key, even to a private repository. Local model and judge calls can be billed to the configured account. This project will not use user-billed GCP or paid local API calls. Verify a safe no-paid-API model and judge route before live calls, including self-hosted development where feasible; sponsorship of final evaluation does not establish free local API access.
 
 ## Planned model: Gemini 4 Argon
 
@@ -43,7 +51,7 @@ This prevents these inherited SDK flags from selecting Vertex/Enterprise. It doe
 3. Verify the logging change in the pinned runtime and official kit before real tasks. The focused synthetic tests pass, but installed test-time websockets was 16.0 rather than the pinned 15.0.1. Real process, WebSocket and model behavior is not validated.
 4. Confirm the model/proxy, judge, credentials route, monetary cap, task count and stop conditions. Do not assume sponsored final evaluation makes local checks free. `kit check` includes model calls.
 5. Run the official checks, cancellation test and a bounded pilot, then the authorized dev-set evaluation. Preserve the unmodified `eval/run.py` export and record source/data revisions.
-6. Inspect generated artifacts for copied raw inputs and secrets before publication. Do not manually edit benchmark outputs to improve their score. Commit the verified code and artifacts together only after review.
+6. Inspect generated artifacts for copied raw inputs and secrets before publication. Do not manually edit benchmark outputs to improve their score. Artifacts must be actual, unpacked exports within 512 MiB and 10,000 files, without Git LFS or symlinks. Both `kit check` and `kit artifacts` must pass. Apply the permitted model declaration switch with actual local-model/judge disclosure, then commit the reviewed code and artifacts together. Do not extend that exception to arbitrary harness edits.
 
 The initial source check is not an official kit check, a test of cancellation, or evidence of score, eligibility or submission success.
 
