@@ -1,5 +1,9 @@
 # Gemini 4 Argon: local configuration and CLI checks
 
+**Later clarification (2026-11-13):** The [current rules review](2026-11-13-rules-and-local-preflight.md) supersedes development-route assumptions below: self-hosted development artifacts and a pre-commit eligible-model switch are permitted with actual model/judge disclosure; paid local judging is not mandatory. The default kit still may incur charges. Historical test results below are unchanged.
+
+日本語補足：現行要件では別モデルによる開発生成物と提出前の対象モデルへの変更が認められ、有料のローカル採点は必須ではありません。実際のモデル・採点設定の開示が必要です。以下の過去のテスト結果は変更していません。
+
 ## Status and question
 
 **Completed: source configuration and synthetic/mock checks only. No Pi execution, model
