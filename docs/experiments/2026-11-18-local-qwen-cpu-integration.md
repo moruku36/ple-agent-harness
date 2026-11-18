@@ -216,3 +216,27 @@ The existing temporary gate records only request IDs, timings, status/byte count
 The real-task hold remains: confirm the applicable data/record-retention interpretation and remaining rules clauses, then review the exact run configuration. No new real-task run, external task transmission, paid inference or security-boundary expansion occurred.
 
 日本語追記: 規約本文は既存Chromeなら未ログインで閲覧でき、本人操作は不要でした。データ公開・チーム外共有等の制限を確認しましたが、長文省略と参加状態の未確認は残ります。独自ログの残存経路を別候補で抑制し、合成sentinel3ケースが成功。公式評価器のtrajectory等は別経路のため、独自ログ対策だけで実課題の保持・公開条件を満たしたとは扱わず、実課題保留を継続します。
+
+## Follow-up: official trajectory retention remains unresolved (2026-11-18 UTC)
+
+Read-only source review confirmed that the pinned official evaluator records the opening instruction as a user step, builds a trajectory from steps/tool arguments/observations/final output, and saves it alongside run logs. See [relay.py](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/kit/relay.py#L1006) and [harbor_agent.py](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/kit/harbor_agent.py#L777-L895).
+
+The pinned [artifact documentation](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/artifacts.md) classifies trajectory.json as optional inspection evidence, never graded, and omits oversized trajectories from export. This does **not** by itself establish permission to publish raw trajectories or retain them indefinitely. The [evaluation README](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/eval/README.md) documents run-local protocol transcripts, trajectory and serve/egress logs.
+
+**Correction/clarification: --no-export is not a content-nonretention mode.** It prevents updating the entry's artifacts directory; local run records and run-side artifacts can still remain. No setting was changed to bypass this behavior.
+
+The pinned rules distinguish public dev tasks and hidden test tasks and explicitly prohibit retaining test-task prompts/files. The current organizer agent instructions use broader wording about copies of task content. No explicit retention period or general exception reconciling that wording with the evaluator's automatic dev-run records was found. This is an unresolved interpretation, not a declaration that all official dev records are forbidden or that all are safe to publish.
+
+A metadata-only inventory found three existing trajectory files from the earlier local runs. Their contents were not reopened for this inventory. They were not deleted, moved, modified or uploaded. No raw trajectory, task content or credential was added to this report.
+
+Participation/acceptance status is also unverified. Public rules are readable without login, but that does not establish the participant's account state. Checking participation requires an authenticated view of the competition; joining or accepting rules would be a separate authorized decision.
+
+### Safe handling pending clarification
+
+- Keep real-task evaluation on hold; continue only unrelated synthetic development if requested.
+- Do not make independent content-bearing harness/model/gate logs.
+- Do not automatically publish raw official run records or treat the repository's public report as an approved artifact export.
+- Do not alter official scored records to manufacture compliance, and do not delete existing evidence without an appropriate decision.
+- Seek a precise answer on whether automatically generated local dev trajectories may be kept, any retention limit, and which exports are permitted. No organizer message has been sent.
+
+日本語追記: 公式評価器がinstruction・操作・結果をtrajectoryへ保存することを確認しました。trajectoryは任意・非採点ですが、それだけで公開や無期限保持の許可にはなりません。--no-exportも内容非保持ではありません。保持禁止との適用関係・保存期間の明示を確認できず、参加状態も未確認のため実課題は保留継続。既存trajectoryは本文を開かず件数だけ確認し、削除・改変・公開していません。
