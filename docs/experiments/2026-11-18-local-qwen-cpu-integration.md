@@ -152,3 +152,30 @@ Typed adapter SHA256: `375f6dd2bd07222227d2e301166c0be24e6ac1fc5b7cdd9fa2c585b06
 This is a **text-only research prototype**, not a replacement for the full PLE agent: binary office/PDF deliverables, code execution and MCP tasks are unsupported. The prior real-model successes do not validate this new dynamic-path integration. Do not claim a score gain or immediately rerun an incompatible real task. Resolve the remaining rules/logging/transport checks and choose an appropriate minimal synthetic integration step before any further local-dev evaluation.
 
 日本語追記: 課題固有パスを固定せず、session.workdir内の動的探索と型付きテキストI/Oを行う別候補を実装しました。パス逸脱・symlink・無断上書き・未宣言shell呼出しを拒否し、独自ログは操作名だけです。CPU5ケース成功、試験側の型注釈不足で最後の1ケースのみ再実行しました。公式WebSocket統合・モデル・実課題は未実行。binary/MCP非対応と最新Kaggle規約本文の未確認を残し、実課題評価へは進めていません。
+
+## Follow-up: real WebSocket, synthetic evaluator peer (2026-11-18 UTC)
+
+Status: two minimal CPU-only connection cases passed. No model call, restricted task, official evaluator run, or submission.
+
+The exact taskbridge.py used by the candidate matches the pinned official local-model sample byte-for-byte: SHA256 `2f15766091ff1be44d58128d690177c7756c75e06650a46f706533e6b31b12a6`. The existing websockets 17.4 package was mounted read-only; nothing was installed.
+
+Inside one network-none, non-root, read-only container (CPU1/256 MiB, outer40-second limit), a loopback-only ephemeral WebSocket server invoked the official taskbridge._session and Session implementation. A synthetic evaluator peer sent task/result/cancel frames and executed the generated operations solely against temporary synthetic files. No host port was published.
+
+1. **Round trip:** task → four exec/result pairs (directory listing, read, write, readback) → content-free progress log → done. Request IDs were unique and matched to replies; saved bytes matched the synthetic input.
+2. **Pending-request cancellation:** task → exec request → cancel → done. The official pending future raised Cancelled and the handler observed it, without executing the pending filesystem operation.
+
+Both loopback ports were closed after their server contexts exited; the container was removed. Persisted output contained only the result summary and frame types, not raw frames, generated commands or file contents; stderr was empty. This specifically checks the synthetic probe's progress-log path. It is **not** an end-to-end audit of all possible SDK/model/evaluator logs.
+
+Probe SHA256: `9d14b11f26bd04451ef7fa904e388bae90c374da5e18bd980f699a99e44aa9e0`.
+
+The transport is now exercised over a real WebSocket rather than only a fake session, but the peer is a fixture, not the official evaluator. Full candidate inference, evaluator/egress integration, scoring and binary/MCP capabilities remain unrun or unsupported.
+
+### Rules recheck and remaining gate
+
+The repository's exact [Kaggle competition rules URL](https://www.kaggle.com/competitions/physical-engineerings-last-exam/rules) was retried; no rules body could be retrieved. An alternate path and search did not yield the competition-specific text. General Kaggle terms or another competition's rules were not substituted.
+
+The current [organizer guide](https://ple-bench.com/competition/guide), [agent instructions](https://ple-bench.com/competition/agents), and pinned kit protocol/rules support operating through the evaluator protocol and prohibit task-identity routing, hard-coded answers, grader/reference access, proxy bypass and copying restricted task content into independent logs. Stdout/stderr, exceptions, SDK debug, model server and relay logs all need review; suppressing Session.log alone is insufficient.
+
+Thus the synthetic connection check is complete, but the Kaggle-specific participation/data/publication conditions and the boundary between official evaluator records and prohibited independent logging are not fully verified. **No real-task rerun was performed or unlocked by this result.**
+
+日本語追記: 固定公式taskbridgeを実WebSocketで使用し、合成peerとの読取→書込→読戻しとpending中cancelの2ケースが成功しました。network none内のloopbackだけで実施し、ポート閉鎖・コンテナ削除を確認。モデル・実課題は未実行です。Kaggle大会固有規約の本文は再取得できず、ログ経路全体の確認も残るため、実課題評価へ進める根拠にはしていません。
