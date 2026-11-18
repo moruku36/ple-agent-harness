@@ -6,6 +6,7 @@ English is primary. Each note includes a Japanese summary. This index covers pre
 
 | Date (UTC) | Note | Evidence class | Outcome |
 | --- | --- | --- | --- |
+| 2026-11-18 | [Local Qwen CPU integration and typed-tool isolation](2026-11-18-local-qwen-cpu-integration.md) | Local dev evaluations and real-model synthetic tests | Two clean local scores remain 0; navigation/cwd probes failed; narrow typed I/O passed once; no submission |
 | 2026-11-13 | [Argon image/routing guard](2026-11-13-argon-image-routing.md) | Synthetic configuration/process-boundary tests | Final 27/27 passed after one corrected integration-test error; no live calls |
 | 2026-11-13 | [Pinned Pi request-path trace](2026-11-13-pi-static-request-trace.md) | Exact-version static source review | Conditional thinking-field omission confirmed; no actual serialization |
 | 2026-11-13 | [Official source validation](2026-11-13-official-source-validation.md) | Official schema function, local-only | Passed; no model, process or Docker call |
