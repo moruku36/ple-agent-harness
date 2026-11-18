@@ -99,3 +99,17 @@ References: [official PLE evaluation guide](https://github.com/google-research/p
 明示cwdの合成試験もパス・shell算術の誤りで失敗。一方、固定許可パスの型付きread/writeによる単純コピーは、2リクエスト・11.0秒で実ファイル検証に成功しました。ただし算術も除いた別条件の1例で、PLE性能改善や因果的な比較とは扱いません。
 
 費用の発生するAPI・GPU・提出なし。実行後はモデル・所有コンテナ・一時認証を停止／削除し、ポート閉鎖を確認。共有ネットワークだけ承認どおり残しています。秘密・制限付き課題本文・生trajectoryは公開していません。同条件の反復は停止し、失敗と未検証を含めて記録しました。
+
+## Follow-up: typed numeric transformation (2026-11-18 UTC)
+
+Question: with the typed I/O implementation unchanged, can the same model read an integer, add four, and save the result, rather than merely copy text?
+
+One additional synthetic model trial used the same exact path enums (including a space), tool execution code, model, sampling and isolation/resource/time limits as the typed-copy probe. Only the fixture input, requested transformation and expected output changed. The previous three safety tests were **not rerun** because the safety implementation was unchanged. No official task was executed.
+
+Result: **2 requests, 10.425 seconds, pass**. The model first read the input, then wrote the correct three-byte result including its newline. Actual file contents were checked; this was not a claim inferred from a final message. No tool error occurred. Model termination and container removal were verified.
+
+Probe SHA256: `03e72548d9b0a79be8c41578f13b276e8ce536d159e72f61ebc27113b6c293e6`.
+
+Interpretation: a small numeric transformation succeeds when shell syntax and path choice are constrained. This single fixture does not establish general arithmetic reliability, superiority over a matched shell baseline, or a PLE score improvement. It narrows the earlier shell failure: inability to perform this elementary transformation is not demonstrated by that failure alone. More elaborate tasks and unrestricted path selection remain untested. No additional charge, network exposure, GPU, or submission was introduced.
+
+日本語追記: 型付きI/Oの実装を変えず、コピーから「整数を読み4加えて保存」へ変更した1回は、2リクエスト・10.425秒で成功しました。実ファイル3byteを確認済み。既存安全試験は再実行せず、モデル／コンテナ停止も確認しました。小さな合成変換の成功であり、一般能力や公式課題の得点改善は未検証です。
