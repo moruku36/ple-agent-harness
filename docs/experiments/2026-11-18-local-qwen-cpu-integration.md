@@ -113,3 +113,42 @@ Probe SHA256: `03e72548d9b0a79be8c41578f13b276e8ce536d159e72f61ebc27113b6c293e6`
 Interpretation: a small numeric transformation succeeds when shell syntax and path choice are constrained. This single fixture does not establish general arithmetic reliability, superiority over a matched shell baseline, or a PLE score improvement. It narrows the earlier shell failure: inability to perform this elementary transformation is not demonstrated by that failure alone. More elaborate tasks and unrestricted path selection remain untested. No additional charge, network exposure, GPU, or submission was introduced.
 
 日本語追記: 型付きI/Oの実装を変えず、コピーから「整数を読み4加えて保存」へ変更した1回は、2リクエスト・10.425秒で成功しました。実ファイル3byteを確認済み。既存安全試験は再実行せず、モデル／コンテナ停止も確認しました。小さな合成変換の成功であり、一般能力や公式課題の得点改善は未検証です。
+
+## Follow-up: generic typed text I/O adapter (2026-11-18 UTC)
+
+Status: implemented as a separate experimental candidate; bounded CPU checks completed. **No model call or official-task evaluation of this candidate.**
+
+### Design and rules review
+
+The pinned official kit's minimal sample exposes only bash/read_file/write_file and forwards operations through the task session. Its protocol describes runtime workdir and filesystem operations. This supports a custom narrow tool wrapper as an engineering approach; it is not individual organizer approval of this implementation. Current organizer agent instructions were inspected. The Kaggle rules page body could not be retrieved, so a complete review of current competition rules is **not** claimed.
+
+References: [pinned protocol](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/protocol.md), [pinned rules](https://github.com/google-research/ple/blob/8320f0402fdca9f42476607f72bcfd5271cd50c9/docs/rules.md), [organizer agent instructions](https://ple-bench.com/competition/agents).
+
+Unlike the fixed synthetic path enums, this candidate derives its root only from the current session.workdir, discovers names with list_directory, and accepts relative paths under that root. It has no task-ID branch, known answer, fixed task directory, or access to graders/reference artifacts.
+
+### Implementation boundary
+
+- Model tools: list_directory, read_text, write_text, make_directory. Names and file contents remain untrusted task data.
+- Execution uses **official session.exec** to run a small Python filesystem operation inside the task container, not a host filesystem API. This prototype intentionally uses descriptor-based traversal instead of assuming a lexical prefix around a symlink-following API is sufficient.
+- The root and every directory component are opened with O_DIRECTORY/O_NOFOLLOW; absolute user paths, parent traversal, empty/dot components, symlinks and an unrestricted root of "/" are rejected.
+- Listings are capped at 128 entries. UTF-8 read/write size is capped at 64 KiB; special/nonregular files and NUL-bearing text are rejected. Writes default to exclusive creation; explicit overwrite is required for existing regular files. Missing parents are not silently created.
+- Unknown tool names are denied even if guessed by the model. Shell, legacy edit operations and MCP are not dispatchable in this candidate; MCP-bearing tasks fail closed.
+- The candidate's own tool log records only the recognized operation name, not arguments, paths or content. Official protocol/evaluator records remain a separate consideration and must not be publicly copied.
+- Per-operation time is capped at 10 seconds and remaining session time. Existing overall budgets are unchanged. No new network or permission configuration was introduced.
+
+### Minimal validation and failure accounting
+
+Five distinct CPU cases passed in an isolated network-none container: dynamic directory/text round trip with spaces; parent traversal rejection; symlink-parent rejection; implicit overwrite rejection preserving original content; and denial of an undeclared shell call with content-free tool logging.
+
+The first invocation completed the first four checks, then the isolated AST dispatch test failed because its test namespace omitted the Any annotation symbol. The test namespace was corrected and **only the fifth case** was rerun. Total: five distinct passing cases, six case-attempts, two invocations. This was a test-fixture error, not evidence that the first four checks were rerun. Containers were removed. No model or task run was used to validate this change.
+
+This checks selected boundaries, not exhaustive security coverage. The session.exec transport was represented by a local subprocess-backed test session; the full official WebSocket/evaluator integration remains **unrun**. Size caps and other static branches are implemented but were not separately exercised in this five-case budget.
+
+Candidate serve SHA256: `fe0987cae8fcec7b95343a5cd24d81078659780055f8c8ed8c6a40100e18aef3`.
+Typed adapter SHA256: `375f6dd2bd07222227d2e301166c0be24e6ac1fc5b7cdd9fa2c585b065aabd21`.
+
+### Decision
+
+This is a **text-only research prototype**, not a replacement for the full PLE agent: binary office/PDF deliverables, code execution and MCP tasks are unsupported. The prior real-model successes do not validate this new dynamic-path integration. Do not claim a score gain or immediately rerun an incompatible real task. Resolve the remaining rules/logging/transport checks and choose an appropriate minimal synthetic integration step before any further local-dev evaluation.
+
+日本語追記: 課題固有パスを固定せず、session.workdir内の動的探索と型付きテキストI/Oを行う別候補を実装しました。パス逸脱・symlink・無断上書き・未宣言shell呼出しを拒否し、独自ログは操作名だけです。CPU5ケース成功、試験側の型注釈不足で最後の1ケースのみ再実行しました。公式WebSocket統合・モデル・実課題は未実行。binary/MCP非対応と最新Kaggle規約本文の未確認を残し、実課題評価へは進めていません。
