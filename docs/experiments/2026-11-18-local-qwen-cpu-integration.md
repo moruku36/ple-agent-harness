@@ -179,3 +179,40 @@ The current [organizer guide](https://ple-bench.com/competition/guide), [agent i
 Thus the synthetic connection check is complete, but the Kaggle-specific participation/data/publication conditions and the boundary between official evaluator records and prohibited independent logging are not fully verified. **No real-task rerun was performed or unlocked by this result.**
 
 日本語追記: 固定公式taskbridgeを実WebSocketで使用し、合成peerとの読取→書込→読戻しとpending中cancelの2ケースが成功しました。network none内のloopbackだけで実施し、ポート閉鎖・コンテナ削除を確認。モデル・実課題は未実行です。Kaggle大会固有規約の本文は再取得できず、ログ経路全体の確認も残るため、実課題評価へ進める根拠にはしていません。
+
+## Follow-up: logging boundary and legitimate rules access (2026-11-18 UTC)
+
+### Correction: rules page is readable in the browser
+
+The earlier failed text-fetch attempts were a retrieval limitation, not a requirement to sign in. The exact Kaggle rules page was opened through an existing Chrome session and its body was visible **while signed out**. No login, Join, acceptance, permission change or owner intervention was needed.
+
+The browser review identified B4 restrictions on competition-data use and disclosure to nonparticipants; B6 conditional use of external data/models/tools subject to host restrictions; C5(d)/C6 restrictions on private code/data sharing outside the team; and C4(b) restrictions on incorporating manual labels/predictions for validation/test without explicit permission. These observations do not authorize sending restricted tasks to another model service. Long paragraphs were truncated in the accessibility output, so a complete clause-by-clause review and the owner's participation/acceptance state remain unverified. The older statements that the body could not be retrieved describe the earlier web-text route and are superseded by this browser-access finding.
+
+### Candidate-owned log hardening
+
+Static review found remaining content-bearing paths beyond tool-call logs: task workdir startup output, exception strings in model retry/compaction handling, taskbridge malformed-frame diagnostics and handler errors, subprocess stderr forwarding, and optional SDK/transport debug logging.
+
+A separate quiet candidate now:
+- emits only a fixed startup label rather than the workdir;
+- allowlists recognized typed-operation names in Session.log and replaces other diagnostics with a fixed redaction label;
+- disables standard Python logging for the harness process and uses exception-type-only top-level/async diagnostics;
+- suppresses raw malformed frames, handler exception messages and subprocess stderr in its derived taskbridge diagnostics.
+
+This bridge is **modified from the official sample**, unlike the byte-identical bridge in the prior WebSocket test. No claim is made that the previous complete round-trip test was rerun on every new branch.
+
+Three new synthetic sentinel scenarios passed in a network-none container: allowlisted session logging plus standard-log/top-level/async error handling; a real WebSocket handler exception; and a malformed frame followed by cancellation. The sentinel appeared in neither captured stderr nor returned diagnostic frames. All cases used synthetic content, no model or real task. Container removal was verified.
+
+Quiet serve SHA256: `0f368da9b443ed292610977335eb6ee901f9e826052d11e5da6f5328aa5ee5b6`.
+Derived bridge SHA256: `5cdb7cbf76e10ae806833488b7acaa5743593a74aa427a2deaf805347a645142`.
+Diagnostic guard SHA256: `48212bc46f79607980ef2fb5cc66dfeaef7ea9bdbacc36ee47b32ed5e674df4d`.
+Sentinel probe SHA256: `a5e42634fce96e36208a9325b5b5e4091a4211c24971cb2f00a60eee63e4d043`.
+
+### What this does not close
+
+The official evaluator separately constructs trajectory records and saves harness/serve/egress logs (pinned kit harbor_agent.py). Its exec/result records can contain task data even when independent harness diagnostics are content-free. These required official records must not be confused with additional debugging logs or automatically included in a public report. The evaluator/export format was **not modified**.
+
+The existing temporary gate records only request IDs, timings, status/byte counts and exception classes; model stdout/stderr was directed to the null device. These checks do not prove that every future deployment, dependency or optional debug setting is content-free.
+
+The real-task hold remains: confirm the applicable data/record-retention interpretation and remaining rules clauses, then review the exact run configuration. No new real-task run, external task transmission, paid inference or security-boundary expansion occurred.
+
+日本語追記: 規約本文は既存Chromeなら未ログインで閲覧でき、本人操作は不要でした。データ公開・チーム外共有等の制限を確認しましたが、長文省略と参加状態の未確認は残ります。独自ログの残存経路を別候補で抑制し、合成sentinel3ケースが成功。公式評価器のtrajectory等は別経路のため、独自ログ対策だけで実課題の保持・公開条件を満たしたとは扱わず、実課題保留を継続します。
