@@ -240,3 +240,39 @@ Participation/acceptance status is also unverified. Public rules are readable wi
 - Seek a precise answer on whether automatically generated local dev trajectories may be kept, any retention limit, and which exports are permitted. No organizer message has been sent.
 
 日本語追記: 公式評価器がinstruction・操作・結果をtrajectoryへ保存することを確認しました。trajectoryは任意・非採点ですが、それだけで公開や無期限保持の許可にはなりません。--no-exportも内容非保持ではありません。保持禁止との適用関係・保存期間の明示を確認できず、参加状態も未確認のため実課題は保留継続。既存trajectoryは本文を開かず件数だけ確認し、削除・改変・公開していません。
+
+
+## Follow-up: quiet bridge + typed I/O synthetic integration (2026-11-18 UTC)
+
+Status: **one integrated synthetic case passed**. No model inference, real task, official evaluator, external task transmission, paid API, additional GPU, or submission.
+
+The quiet candidate's four component hashes still match the previously recorded serve, derived bridge, typed adapter and diagnostic guard. Inspection found that its copied WS-TEST metadata referred to the **older generic bridge**, not this quiet implementation. That copied result was not counted as quiet integration evidence.
+
+### Scope and execution
+
+The new probe uses the quiet bridge, diagnostic wrapper and typed adapter together over a real WebSocket with a synthetic evaluator peer. It does **not** execute serve.py's model/tool-selection loop. The existing dependency-bearing image was used without downloads or installation, with network none, ephemeral loopback only, no published host port, non-root, read-only root/mounts, CPU1, 512 MiB, pids32, outer45-second limit and per-exec5-second limit.
+
+The first invocation failed **before exercising the boundary** because the image's system Python did not expose the existing websockets dependency. This was an unmeasured setup failure, not a failed task or a scored zero. Only the interpreter path was changed to the image's existing harness virtual environment. Candidate code, probe and image were unchanged; the previously unexecuted integrated case was then run once.
+
+### Observed result
+
+- Six uniquely identified exec/result exchanges: five synthetic commands covering mkdir, write, read, list and a rejected parent-traversal write; the sixth response injected a synthetic error.
+- Saved bytes matched the generated synthetic input; directory listing matched; the out-of-root write was rejected and no escaped output appeared.
+- The required synthetic data correctly crossed the exec/result channel. That necessary dataflow was **not** misclassified as diagnostic leakage.
+- Allowlisted operation logging remained available; other log text was redacted. The injected error produced a content-free terminal error frame, and captured stderr contained no synthetic sentinel. Stderr was 29 bytes, **not empty**.
+- The loopback listener was closed and the owned container was absent after both invocations.
+
+No raw frames, generated commands, synthetic runtime payloads, restricted task data or credentials were persisted in the observation. Persisted evidence contains code, counts, component hashes and boolean checks.
+
+Probe SHA256: `86fd0759a49fa990c3d2b1f93d9a9162eb5c200821668ea638f6c1eab2cf0bc9`.
+Scientist manifest SHA256: `c101204e24d0bc883c79b14a79c4c93221b9d5437bfa2dc0ad435f61bd342998`.
+
+Sleep retrieved the existing approved public Docker-requirement excerpt only; no new rule was adopted and no consumer/provider was dispatched. Scientist stored five exact-byte artifacts and the manifest, then verified every readback. Its first import attempt was refused before writes because an optional environment field referenced an evidence-kind artifact; the empty store was checked, the optional fields left unspecified, and the corrected import succeeded. This recording correction did not rerun the experiment.
+
+### Interpretation and remaining hold
+
+This closes a narrow previously untested connection between the **quiet** bridge, typed operations and diagnostic guard. It is not a model capability result, full-candidate inference test, comprehensive leak audit, official protocol/evaluator certification or score improvement.
+
+The quiet serve/model loop, official evaluator/egress integration, participation status and trajectory retention interpretation remain unverified or on hold. No real-task evaluation was enabled by this synthetic success, and no existing official records were reopened, deleted, changed or published.
+
+日本語追記: quiet版のbridge・型付きI/O・診断抑制を、実WebSocketと合成peerで初めて組み合わせて確認しました。旧generic版のコピー結果はquiet版の証拠に数えません。初回は既存依存を参照できないPythonで起動前失敗し、既存venvへ起動位置だけ直して未実行の1ケースを実施。6RPCで読書き・一覧・パス逸脱拒否・エラー時の診断非漏洩が成功し、ポート閉鎖とコンテナ削除を確認しました。必要なデータ通信と診断ログを区別し、モデル呼出し・公式課題は0。Sleepの既存公開参照取得とScientistの保存・読戻しも記録済み。実モデルloopと公式評価器・参加/trajectory条件は引き続き未検証・保留です。
